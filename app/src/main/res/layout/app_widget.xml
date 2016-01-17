@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="@drawable/widget_bg_normal"
+    android:orientation="horizontal"
+    >
+    <ImageButton
+        android:id="@+id/select_task"
+        android:layout_width="wrap_content"
+        android:layout_height="fill_parent"
+        android:layout_alignParentLeft="true"
+        android:src="@drawable/vert_toggle_on"
+    />
+    <ImageButton
+        android:id="@+id/next_task"
+        android:layout_width="wrap_content"
+        android:layout_height="fill_parent"
+        android:layout_alignParentRight="true"
+        android:src="@drawable/ic_media_next"
+    />
+    <TextView
+        android:id="@+id/current_task"
+        android:layout_width="wrap_content"
+        android:layout_height="fill_parent"
+        android:layout_marginLeft="7dip"
+        android:layout_marginRight="7dip"
+        android:layout_toLeftOf="@id/next_task"
+        android:layout_toRightOf="@id/select_task"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:singleLine="true"
+        android:textColor="#000000"
+        android:textSize="24dip"
+        android:textStyle="bold"
+    />
+</RelativeLayout>
