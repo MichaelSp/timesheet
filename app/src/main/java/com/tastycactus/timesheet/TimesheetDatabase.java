@@ -29,7 +29,7 @@ import java.util.Calendar;
 
 public class TimesheetDatabase extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "Timesheet";
-    private static final int DATABASE_VERSION = 3;
+    private static final int DATABASE_VERSION = 4;
 
     public TimesheetDatabase(Context ctx) {
         super(ctx, DATABASE_NAME, null, DATABASE_VERSION);
@@ -51,7 +51,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) throws SQLException {
         String[] sqls = new String[] {
-            "CREATE TABLE tasks (_id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, billable INTEGER, hidden INTEGER)",
+                "CREATE TABLE tasks (_id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, billable INTEGER, wifi TEXT, hidden INTEGER)",
             "CREATE TABLE time_entries (_id INTEGER PRIMARY KEY AUTOINCREMENT, task_id INTEGER, comment STRING, start_time TEXT NOT NULL, end_time TEXT)"
         };
         db.beginTransaction();
@@ -70,38 +70,33 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int old_version, int new_version) {
         if (old_version == 1) {
-            String[] sqls = new String[] {
-                "ALTER TABLE tasks ADD COLUMN hidden INTEGER",
-                "UPDATE tasks SET hidden = 0"
-            };
-            db.beginTransaction();
-            try {
-                for( String sql : sqls )
-                    db.execSQL(sql);
-                db.setTransactionSuccessful();
-            } catch (SQLException e) {
-                Log.e("Error upgrading Timesheet database tables", e.toString());
-                throw e;
-            } finally {
-                db.endTransaction();
-            }
+            upgrade(db, new String[]{
+                    "ALTER TABLE tasks ADD COLUMN hidden INTEGER",
+                    "UPDATE tasks SET hidden = 0"
+            });
         }
         if (old_version == 2) {
-            String[] sqls = new String[] {
-                "ALTER TABLE time_entries ADD COLUMN comment STRING",
-                "UPDATE time_entries SET comment = ''"
-            };
-            db.beginTransaction();
-            try {
-                for( String sql : sqls )
-                    db.execSQL(sql);
-                db.setTransactionSuccessful();
-            } catch (SQLException e) {
-                Log.e("Error upgrading Timesheet database tables", e.toString());
-                throw e;
-            } finally {
-                db.endTransaction();
-            }
+            upgrade(db, new String[]{
+                    "ALTER TABLE time_entries ADD COLUMN comment STRING",
+                    "UPDATE time_entries SET comment = ''"
+            });
+        }
+        if (old_version == 3) {
+            upgrade(db, new String[]{"ALTER TABLE tasks ADD COLUMN wifi TEXT"});
+        }
+    }
+
+    private void upgrade(SQLiteDatabase db, String[] sqls) {
+        db.beginTransaction();
+        try {
+            for (String sql : sqls)
+                db.execSQL(sql);
+            db.setTransactionSuccessful();
+        } catch (SQLException e) {
+            Log.e("Error upgrading Timesheet database tables", e.toString());
+            throw e;
+        } finally {
+            db.endTransaction();
         }
     }
 
@@ -114,7 +109,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
             sortString = "billable DESC, title ASC";
         }
 
-        Cursor c = db.query("tasks", new String[] {"_id", "title", "billable"}, "hidden != 1", null, null, null, sortString);
+        Cursor c = db.query("tasks", new String[]{"_id", "title", "billable", "wifi"}, "hidden != 1", null, null, null, sortString);
         c.moveToFirst();
         return c;
     }
@@ -130,7 +125,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
 
     public Cursor getTask(long id) {
         SQLiteDatabase db = getReadableDatabase();
-        Cursor c = db.query("tasks", new String[] {"_id", "title", "billable"}, "_id = ?", new String[] {Long.toString(id)}, null, null, null);
+        Cursor c = db.query("tasks", new String[]{"_id", "title", "billable", "wifi"}, "_id = ?", new String[]{Long.toString(id)}, null, null, null);
         c.moveToFirst();
         return c;
     }
@@ -152,7 +147,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         return c.getCount() > 0;
     }
 
-    public void newTask(String title, boolean billable) {
+    public void newTask(String title, boolean billable, String wifi) {
         ContentValues cv = new ContentValues();
 
         // Check if this task already exists, but is hidden.
@@ -169,6 +164,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         } else {
             cv.put("title", title);
             cv.put("billable", billable);
+            cv.put("wifi", wifi);
             cv.put("hidden", false);
             try {
                 getWritableDatabase().insert("tasks", null, cv);
@@ -179,10 +175,11 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         c.close();
     }
 
-    public void updateTask(long id, String title, boolean billable) {
+    public void updateTask(long id, String title, boolean billable, String wifi) {
         ContentValues cv = new ContentValues();
         cv.put("title", title);
         cv.put("billable", billable);
+        cv.put("wifi", wifi);
         try {
             getWritableDatabase().update("tasks", cv, "_id = ?", new String[] {Long.toString(id)});
         } catch (SQLException e) {

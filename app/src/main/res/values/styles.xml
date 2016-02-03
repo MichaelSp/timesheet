@@ -8,4 +8,8 @@
     <style name="DialogTheme" parent="android:Theme.Holo.Dialog">
 
     </style>
+
+    <style name="default_layout">
+        <item name="android:padding">25dp</item>
+    </style>
 </resources>

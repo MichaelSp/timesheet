@@ -7,13 +7,22 @@
     <ListView  
         android:id="@android:id/list"
         android:layout_width="fill_parent" 
-        android:layout_height="fill_parent" 
+        android:layout_height="fill_parent"
         />
+
+    <Button
+        android:id="@+id/add_task"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|right"
+        android:drawableStart="@android:drawable/btn_plus"
+        android:text="@string/add_task" />
+
     <TextView
         android:id="@android:id/empty"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        android:text="@string/help_summary"
-        android:textSize="16dip"
-        />
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:text="@string/help_summary" />
+
+
 </LinearLayout>

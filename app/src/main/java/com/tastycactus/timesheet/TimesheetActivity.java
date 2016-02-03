@@ -18,12 +18,18 @@
 package com.tastycactus.timesheet;
 
 import android.app.ListActivity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.DataSetObserver;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Menu;
@@ -34,13 +40,13 @@ import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 
 public class TimesheetActivity extends ListActivity {
-    public static final int ADD_TASK_MENU_ITEM     = Menu.FIRST;
-    public static final int DELETE_TASK_MENU_ITEM  = Menu.FIRST + 1;
+    public static final int ADD_TASK_MENU_ITEM = Menu.FIRST;
+    public static final int DELETE_TASK_MENU_ITEM = Menu.FIRST + 1;
     public static final int LIST_ENTRIES_MENU_ITEM = Menu.FIRST + 2;
-    public static final int EDIT_TASK_MENU_ITEM    = Menu.FIRST + 3;
-    public static final int PREFERENCES_MENU_ITEM  = Menu.FIRST + 4;
+    public static final int EDIT_TASK_MENU_ITEM = Menu.FIRST + 3;
+    public static final int PREFERENCES_MENU_ITEM = Menu.FIRST + 4;
     private static final int ACTIVITY_CREATE = 0;
-    private static final int ACTIVITY_EDIT   = 1;
+    private static final int ACTIVITY_EDIT = 1;
     TimesheetDatabase m_db;
     Cursor m_task_cursor;
     SimpleCursorAdapter m_ca;
@@ -48,7 +54,7 @@ public class TimesheetActivity extends ListActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        SharedPreferences prefs=PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
         m_db = new TimesheetDatabase(this);
         m_task_cursor = m_db.getTasks(prefs.getBoolean("alphabetise_tasks", false));
@@ -56,10 +62,10 @@ public class TimesheetActivity extends ListActivity {
 
         setContentView(R.layout.main);
         m_ca = new SimpleCursorAdapter(this,
-                android.R.layout.simple_list_item_single_choice, 
+                android.R.layout.simple_list_item_single_choice,
                 m_task_cursor,
-                new String[] {"title"},
-                new int[] {android.R.id.text1});
+                new String[]{"title", "wifi"},
+                new int[]{android.R.id.text1, android.R.id.text2});
 
         m_ca.registerDataSetObserver(new DataSetObserver() {
             public void onChanged() {
@@ -88,11 +94,41 @@ public class TimesheetActivity extends ListActivity {
         prefs.edit().commit();
 
         updateCheckedItem();
+
+        installEventListener();
+    }
+
+    private void installEventListener() {
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
+        WifiManager wifiMgr = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        final WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
+        Log.d("WIFI", "Current Network " + wifiInfo.getSSID());
+        registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                final String action = intent.getAction();
+                final String wifiName = wifiInfo.getSSID();
+                if (action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)) {
+                    if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false)) {
+                        Log.d("WLAN", "Connected to " + wifiName);
+                    } else {
+                        Log.d("WLAN", "Disconnected " + wifiName);
+                    }
+                }
+            }
+        }, intentFilter);
+
+        findViewById(R.id.add_task).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                addTask();
+            }
+        });
     }
 
     @Override
-    protected void onDestroy()
-    {
+    protected void onDestroy() {
         m_task_cursor.close();
         m_db.close();
         super.onDestroy();
@@ -102,11 +138,11 @@ public class TimesheetActivity extends ListActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         boolean result = super.onCreateOptionsMenu(menu);
         menu.add(Menu.NONE, ADD_TASK_MENU_ITEM, Menu.NONE, "Add Task")
-            .setIcon(android.R.drawable.ic_menu_add);
+                .setIcon(android.R.drawable.ic_menu_add);
         menu.add(Menu.NONE, LIST_ENTRIES_MENU_ITEM, Menu.NONE, "List Entries")
-            .setIcon(android.R.drawable.ic_menu_info_details);
+                .setIcon(android.R.drawable.ic_menu_info_details);
         menu.add(Menu.NONE, PREFERENCES_MENU_ITEM, Menu.NONE, "Preferences")
-            .setIcon(android.R.drawable.ic_menu_preferences);
+                .setIcon(android.R.drawable.ic_menu_preferences);
         return result;
     }
 
@@ -196,7 +232,7 @@ public class TimesheetActivity extends ListActivity {
             getListView().clearChoices();
         } else {
             int count = getListView().getCount();
-            for (int i=0; i < count; ++i) {
+            for (int i = 0; i < count; ++i) {
                 if (m_ca.getItemId(i) == current_id) {
                     getListView().setItemChecked(i, true);
                 }

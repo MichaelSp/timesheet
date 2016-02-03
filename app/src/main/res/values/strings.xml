@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources>1
+    <string name="add_task">Add Task</string>
     <string name="app_name">Timesheet</string>
     <string name="task_list_activity">Tasks</string>
     <string name="task_edit_activity">Edit Task</string>
@@ -11,13 +12,13 @@
         \n<b>Welcome to Timesheet!</b>\n\n
         To start, add some tasks to Timesheet.
         Tasks can be billable tasks such as "Project Documentation" or
-        unbillable tasks such as "Lunch".  Use the "Add Task" menu 
+        unbillable tasks such as "Lunch".  Use the "Add Task" menu
         option to add a task.\n
         \n
         After tasks have been added, click on a task to select it as
-        the current task.  The checkbox shows which task you are 
+        the current task.  The checkbox shows which task you are
         currently working on.  Selecting a new task will close out
-        the current one and start the new task.  Selecting the 
+        the current one and start the new task.  Selecting the
         current task will close it out without starting a new one.\n
         \n
         To get a report of hours, use the "Time List" menu option to
