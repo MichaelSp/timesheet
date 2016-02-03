@@ -18,18 +18,12 @@
 package com.tastycactus.timesheet;
 
 import android.app.ListActivity;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.DataSetObserver;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Menu;
@@ -62,7 +56,7 @@ public class TimesheetActivity extends ListActivity {
 
         setContentView(R.layout.main);
         m_ca = new SimpleCursorAdapter(this,
-                android.R.layout.simple_list_item_single_choice,
+                R.layout.simple_list_item_2_single_choice,
                 m_task_cursor,
                 new String[]{"title", "wifi"},
                 new int[]{android.R.id.text1, android.R.id.text2});
@@ -78,7 +72,19 @@ public class TimesheetActivity extends ListActivity {
 
         registerForContextMenu(getListView());
 
-        // Set preference defaults if they haven't been set
+        setDefaultPreferences(prefs);
+
+        updateCheckedItem();
+
+        findViewById(R.id.add_task).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                addTask();
+            }
+        });
+    }
+
+    private void setDefaultPreferences(SharedPreferences prefs) {
         if (!prefs.contains("alphabetise_tasks")) {
             prefs.edit().putBoolean("alphabetise_tasks", false);
         }
@@ -91,40 +97,13 @@ public class TimesheetActivity extends ListActivity {
         if (!prefs.contains("default_email")) {
             prefs.edit().putString("default_email", "");
         }
-        prefs.edit().commit();
-
-        updateCheckedItem();
-
-        installEventListener();
+        prefs.edit().apply();
     }
 
-    private void installEventListener() {
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
-        WifiManager wifiMgr = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        final WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
-        Log.d("WIFI", "Current Network " + wifiInfo.getSSID());
-        registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                final String action = intent.getAction();
-                final String wifiName = wifiInfo.getSSID();
-                if (action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)) {
-                    if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false)) {
-                        Log.d("WLAN", "Connected to " + wifiName);
-                    } else {
-                        Log.d("WLAN", "Disconnected " + wifiName);
-                    }
-                }
-            }
-        }, intentFilter);
-
-        findViewById(R.id.add_task).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                addTask();
-            }
-        });
+    @Override
+    protected void onResume() {
+        super.onResume();
+        NetworkListener.startup(this);
     }
 
     @Override
@@ -153,7 +132,7 @@ public class TimesheetActivity extends ListActivity {
             getListView().clearChoices();
             getListView().requestLayout();
         } else {
-            m_db.changeTask(id);
+            m_db.changeTask(id, "");
         }
         // Update the App Widget
         startService(new Intent(this, TimesheetAppWidgetProvider.UpdateService.class));

@@ -89,7 +89,7 @@ public class TimesheetAppWidgetProvider extends AppWidgetProvider
                 }
                 SharedPreferences.Editor edit = m_prefs.edit();
                 edit.putLong("app_task", task_id);
-                edit.commit();
+                edit.apply();
             }
 
             RemoteViews updateViews = new RemoteViews(context.getPackageName(), R.layout.app_widget);
@@ -140,12 +140,12 @@ public class TimesheetAppWidgetProvider extends AppWidgetProvider
         public void onHandleIntent(Intent intent) {
             // If the currently selected task is the active task, clear the 
             // current task.  Otherwise, set this to the current task
-            long task_id = m_prefs.getLong("app_task", -1);
+            long task_id = m_prefs.getLong("app_task", intent.getLongExtra("TASK_ID", -1));
             long current_id = m_db.getCurrentTaskId();
-            if (task_id == current_id && task_id > 0) {
+            if (task_id == current_id && task_id >= 0 || current_id >= 0 && task_id == -1) {
                 m_db.completeCurrentTask();
-            } else if (task_id > 0) {
-                m_db.changeTask(task_id);
+            } else if (task_id >= 0) {
+                m_db.changeTask(task_id, intent.getStringExtra("COMMENT"));
             }
 
             // Update the GUI
@@ -197,7 +197,7 @@ public class TimesheetAppWidgetProvider extends AppWidgetProvider
             }
             SharedPreferences.Editor edit = m_prefs.edit();
             edit.putLong("app_task", next_task_id);
-            edit.commit();
+            edit.apply();
 
             // Update the GUI
             startService(new Intent(this, UpdateService.class));

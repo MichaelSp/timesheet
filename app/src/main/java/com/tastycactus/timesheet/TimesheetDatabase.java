@@ -60,7 +60,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
                 db.execSQL(sql);
             db.setTransactionSuccessful();
         } catch (SQLException e) {
-            Log.e("Error creating Timesheet database tables", e.toString());
+            Log.e("DB", "Error creating Timesheet database tables" + e.toString());
             throw e;
         } finally {
             db.endTransaction();
@@ -93,7 +93,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
                 db.execSQL(sql);
             db.setTransactionSuccessful();
         } catch (SQLException e) {
-            Log.e("Error upgrading Timesheet database tables", e.toString());
+            Log.e("DB", "Error upgrading Timesheet database tables" + e.toString());
             throw e;
         } finally {
             db.endTransaction();
@@ -135,8 +135,11 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         Cursor c = db.query("tasks", new String[]{"title"}, "_id = ?", new String[]{Long.toString(id)}, null, null, null);
         if (c.getCount() > 0) {
             c.moveToFirst();
-            return c.getString(0);
+            String r = c.getString(0);
+            c.close();
+            return r;
         } else {
+            c.close();
             return "";
         }
     }
@@ -151,7 +154,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         ContentValues cv = new ContentValues();
 
         // Check if this task already exists, but is hidden.
-        Cursor c = getReadableDatabase().query("tasks", new String[] {"_id"}, "title = ?", new String[] {title}, null, null, null);
+        Cursor c = getReadableDatabase().query("tasks", new String[]{"_id"}, "title = ?", new String[]{title}, null, null, null);
         if (c.getCount() > 0) {
             // Un-hide the row
             c.moveToFirst();
@@ -159,7 +162,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
             try {
                 getWritableDatabase().update("tasks", cv, "_id = ?", new String[] {c.getString(c.getColumnIndex("_id"))});
             } catch (SQLException e) {
-                Log.e("Error un-hiding task", e.toString());
+                Log.e("DB", "Error un-hiding task" + e.toString());
             }
         } else {
             cv.put("title", title);
@@ -169,7 +172,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
             try {
                 getWritableDatabase().insert("tasks", null, cv);
             } catch (SQLException e) {
-                Log.e("Error adding new task", e.toString());
+                Log.e("DB", "Error adding new task" + e.toString());
             }
         }
         c.close();
@@ -183,7 +186,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         try {
             getWritableDatabase().update("tasks", cv, "_id = ?", new String[] {Long.toString(id)});
         } catch (SQLException e) {
-            Log.e("Error updating task", e.toString());
+            Log.e("DB", "Error updating task" + e.toString());
         }
     }
 
@@ -197,13 +200,13 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
             try {
                 getWritableDatabase().update("tasks", cv, "_id = ?", new String[] {Long.toString(task_id)});
             } catch (SQLException e) {
-                Log.e("Error hiding task", e.toString());
+                Log.e("DB", "Error hiding task" + e.toString());
             }
         } else {
             try {
                 getWritableDatabase().delete("tasks", "_id = ?", new String[] {Long.toString(task_id)});
             } catch (SQLException e) {
-                Log.e("Error deleting task", e.toString());
+                Log.e("DB", "Error deleting task" + e.toString());
             }
         }
         c.close();
@@ -213,11 +216,11 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         SQLiteDatabase db = getReadableDatabase();
         Cursor c = db.rawQuery(
                 "SELECT _id, task_id, comment, date(start_time) AS start_date, strftime('%H:%M', start_time)"
-                + " AS start_time, date(ifnull(end_time, datetime('now', 'localtime'))) AS end_date,"
-                + " strftime('%H:%M', ifnull(end_time, datetime('now', 'localtime'))) AS end_time,"
-                + " round((strftime('%s', ifnull(end_time, datetime('now', 'localtime'))) - strftime('%s', start_time)) / 3600.0, 2) AS duration"
+                        + " AS start_time, date(ifnull(end_time, datetime('now', 'localtime'))) AS end_date,"
+                        + " strftime('%H:%M', ifnull(end_time, datetime('now', 'localtime'))) AS end_time,"
+                        + " round((strftime('%s', ifnull(end_time, datetime('now', 'localtime'))) - strftime('%s', start_time)) / 3600.0, 2) AS duration"
                         + " FROM time_entries WHERE _id = ? ORDER BY start_time ASC",
-                new String[] {Long.toString(id)}
+                new String[]{Long.toString(id)}
         );
         c.moveToFirst();
         return c;
@@ -254,7 +257,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         try {
             getWritableDatabase().insert("time_entries", null, cv);
         } catch (SQLException e) {
-            Log.e("Error adding new time entry", e.toString());
+            Log.e("DB", "Error adding new time entry" + e.toString());
         }
     }
 
@@ -265,9 +268,9 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         cv.put("start_time", start_time);
         cv.put("end_time", end_time);
         try {
-            getWritableDatabase().update("time_entries", cv, "_id = ?", new String[] {Long.toString(id)});
+            getWritableDatabase().update("time_entries", cv, "_id = ?", new String[]{Long.toString(id)});
         } catch (SQLException e) {
-            Log.e("Error updating time entry", e.toString());
+            Log.e("DB", "Error updating time entry" + e.toString());
         }
     }
 
@@ -279,7 +282,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         try {
             getWritableDatabase().update("time_entries", cv, "_id = ?", new String[] {Long.toString(id)});
         } catch (SQLException e) {
-            Log.e("Error updating time entry", e.toString());
+            Log.e("DB", "Error updating time entry" + e.toString());
         }
     }
 
@@ -308,7 +311,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         try {
             getWritableDatabase().delete("time_entries", "_id=?", new String[] {Long.toString(time_entry_id)});
         } catch (SQLException e) {
-            Log.e("Error deleting time entry", e.toString());
+            Log.e("DB", "Error deleting time entry" + e.toString());
         }
     }
 
@@ -317,34 +320,35 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         ContentValues cv = new ContentValues();
         cv.put("end_time", time);
         try {
-            getWritableDatabase().update("time_entries", cv, "_id=?", new String[] {Long.toString(id)});
+            getWritableDatabase().update("time_entries", cv, "_id=?", new String[]{Long.toString(id)});
         } catch (SQLException e) {
-            Log.e("Error updating time entry", e.toString());
-            return;
+            Log.e("DB", "Error updating time entry" + e.toString());
         }
     }
 
     public void completeCurrentTask() {
         long current_id = getCurrentId();
-        if (current_id == 0) {
+        if (current_id == -1) {
             return;
         }
         completeTask(current_id);
     }
 
-    public void changeTask(long id) {
+    public void changeTask(long id, String comment) {
         completeCurrentTask();
-        newTimeEntry(id, "", getSqlTime(), null);
+        newTimeEntry(id, comment, getSqlTime(), null);
     }
 
     public long getCurrentId() {
         SQLiteDatabase db = getReadableDatabase();
         Cursor c = db.query(true, "time_entries", new String[]{"_id"}, "end_time IS NULL", null, null, null, null, null);
         if (c.getCount() == 0) {
-            return 0;
+            return -1;
         }
         c.moveToFirst();
-        return c.getLong(0);
+        long id = c.getLong(0);
+        c.close();
+        return id;
     }
 
     public long getCurrentTaskId() {
@@ -361,10 +365,10 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         SQLiteDatabase db = getReadableDatabase();
         Cursor c = db.rawQuery(
                 "SELECT title"
-                + " FROM time_entries, tasks"
-                + " WHERE tasks._id = time_entries.task_id"
-                + " AND time_entries.end_time IS NULL",
-                new String[] {}
+                        + " FROM time_entries, tasks"
+                        + " WHERE tasks._id = time_entries.task_id"
+                        + " AND time_entries.end_time IS NULL",
+                new String[]{}
         );
         if (c.getCount() == 0) {
             return "";
@@ -387,5 +391,17 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         );
         c.moveToFirst();
         return c;
+    }
+
+    public long getTaskIdForNetwork(String wifiName) {
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor c = db.query("tasks", new String[]{"_id"}, "wifi = ?", new String[]{wifiName}, null, null, null);
+        if (c.getCount() == 0) {
+            return -1;
+        }
+        c.moveToFirst();
+        long id = c.getLong(0);
+        c.close();
+        return id;
     }
 }

@@ -130,7 +130,7 @@ public class TaskEditActivity extends Activity {
             wifiNetworksArrayAdapter.add("No Network Found");
         } else
             for (WifiConfiguration config : list) {
-                wifiNetworksArrayAdapter.add(config.SSID.trim().replace("\"", ""));
+                wifiNetworksArrayAdapter.add(config.SSID.replace("\"", ""));
             }
 
         wifi_list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
