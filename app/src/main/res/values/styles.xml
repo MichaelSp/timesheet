@@ -1,15 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="AppTheme" parent="android:Theme.Holo">
+    <style name="AppTheme" parent="android:Theme.Holo.Light">
         <!-- Customize your theme here. -->
     </style>
 
-    <style name="DialogTheme" parent="android:Theme.Holo.Dialog">
-
-    </style>
-
-    <style name="default_layout">
-        <item name="android:padding">25dp</item>
-    </style>
 </resources>

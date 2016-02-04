@@ -29,7 +29,7 @@ import java.util.Calendar;
 
 public class TimesheetDatabase extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "Timesheet";
-    private static final int DATABASE_VERSION = 4;
+    private static final int DATABASE_VERSION = 5;
 
     public TimesheetDatabase(Context ctx) {
         super(ctx, DATABASE_NAME, null, DATABASE_VERSION);
@@ -51,7 +51,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) throws SQLException {
         String[] sqls = new String[] {
-                "CREATE TABLE tasks (_id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, billable INTEGER, wifi TEXT, hidden INTEGER)",
+                "CREATE TABLE tasks (_id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, billable INTEGER, wifi TEXT, bluetooth TEXT, hidden INTEGER)",
             "CREATE TABLE time_entries (_id INTEGER PRIMARY KEY AUTOINCREMENT, task_id INTEGER, comment STRING, start_time TEXT NOT NULL, end_time TEXT)"
         };
         db.beginTransaction();
@@ -84,6 +84,9 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         if (old_version == 3) {
             upgrade(db, new String[]{"ALTER TABLE tasks ADD COLUMN wifi TEXT"});
         }
+        if (old_version == 4) {
+            upgrade(db, new String[]{"ALTER TABLE tasks ADD COLUMN bluetooth TEXT"});
+        }
     }
 
     private void upgrade(SQLiteDatabase db, String[] sqls) {
@@ -109,7 +112,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
             sortString = "billable DESC, title ASC";
         }
 
-        Cursor c = db.query("tasks", new String[]{"_id", "title", "billable", "wifi"}, "hidden != 1", null, null, null, sortString);
+        Cursor c = db.query("tasks", new String[]{"_id", "title", "billable", "wifi", "bluetooth"}, "hidden != 1", null, null, null, sortString);
         c.moveToFirst();
         return c;
     }
@@ -119,13 +122,13 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         if (c.getCount() > 0) {
             return c.getLong(0);
         } else {
-            return 0;
+            return -1;
         }
     }
 
     public Cursor getTask(long id) {
         SQLiteDatabase db = getReadableDatabase();
-        Cursor c = db.query("tasks", new String[]{"_id", "title", "billable", "wifi"}, "_id = ?", new String[]{Long.toString(id)}, null, null, null);
+        Cursor c = db.query("tasks", new String[]{"_id", "title", "billable", "wifi", "bluetooth"}, "_id = ?", new String[]{Long.toString(id)}, null, null, null);
         c.moveToFirst();
         return c;
     }
@@ -150,7 +153,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         return c.getCount() > 0;
     }
 
-    public void newTask(String title, boolean billable, String wifi) {
+    public void newTask(String title, boolean billable, String wifi, String bluetooth) {
         ContentValues cv = new ContentValues();
 
         // Check if this task already exists, but is hidden.
@@ -168,6 +171,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
             cv.put("title", title);
             cv.put("billable", billable);
             cv.put("wifi", wifi);
+            cv.put("bluetooth", bluetooth);
             cv.put("hidden", false);
             try {
                 getWritableDatabase().insert("tasks", null, cv);
@@ -178,11 +182,12 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         c.close();
     }
 
-    public void updateTask(long id, String title, boolean billable, String wifi) {
+    public void updateTask(long id, String title, boolean billable, String wifi, String bluetooth) {
         ContentValues cv = new ContentValues();
         cv.put("title", title);
         cv.put("billable", billable);
         cv.put("wifi", wifi);
+        cv.put("bluetooth", bluetooth);
         try {
             getWritableDatabase().update("tasks", cv, "_id = ?", new String[] {Long.toString(id)});
         } catch (SQLException e) {
@@ -353,9 +358,9 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
 
     public long getCurrentTaskId() {
         SQLiteDatabase db = getReadableDatabase();
-        Cursor c = db.query(true, "time_entries", new String[] {"task_id"}, "end_time IS NULL", null, null, null, null, null);
+        Cursor c = db.query(true, "time_entries", new String[]{"task_id"}, "end_time IS NULL", null, null, null, null, null);
         if (c.getCount() == 0) {
-            return 0;
+            return -1;
         }
         c.moveToFirst();
         return c.getLong(0);
@@ -396,6 +401,18 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
     public long getTaskIdForNetwork(String wifiName) {
         SQLiteDatabase db = getReadableDatabase();
         Cursor c = db.query("tasks", new String[]{"_id"}, "wifi = ?", new String[]{wifiName}, null, null, null);
+        if (c.getCount() == 0) {
+            return -1;
+        }
+        c.moveToFirst();
+        long id = c.getLong(0);
+        c.close();
+        return id;
+    }
+
+    public long getTaskIdForBluetoothDevice(String deviceName) {
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor c = db.query("tasks", new String[]{"_id"}, "bletooth = ?", new String[]{deviceName}, null, null, null);
         if (c.getCount() == 0) {
             return -1;
         }

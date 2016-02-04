@@ -18,6 +18,8 @@
 package com.tastycactus.timesheet;
 
 import android.app.Activity;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
@@ -32,6 +34,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TabHost;
 
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
@@ -44,12 +47,15 @@ public class TaskEditActivity extends Activity {
     long m_row_id;
     ListView wifi_list;
     int selected_item;
+    private ListView bluetooth_list;
     private ArrayAdapter<String> wifiNetworksArrayAdapter;
+    private ArrayAdapter<String> bluetoothArrayAdapter;
     /**
      * ATTENTION: This was auto-generated to implement the App Indexing API.
      * See https://g.co/AppIndexing/AndroidStudio for more information.
      */
     private GoogleApiClient client;
+    private TabHost tabHost;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -82,8 +88,12 @@ public class TaskEditActivity extends Activity {
         final EditText title_edit = (EditText) findViewById(R.id.task_title);
         final CheckBox billable_edit = (CheckBox) findViewById(R.id.task_billable);
         wifi_list = (ListView) findViewById(R.id.wifiList);
+        bluetooth_list = (ListView) findViewById(R.id.bluetoothList);
+        tabHost = (TabHost) findViewById(R.id.tabHost);
 
         populateWiFiList();
+        populateBluetoothList();
+
 
         title_edit.setText(title);
         billable_edit.setChecked(billable);
@@ -99,12 +109,13 @@ public class TaskEditActivity extends Activity {
             public void onClick(View view) {
                 String title = title_edit.getText().toString();
                 String wifi = wifiNetworksArrayAdapter.getItem(selected_item);
+                String bluetooth = bluetoothArrayAdapter.getItem(selected_item);
 
                 if (title.length() > 0) {
                     if (m_row_id == -1) {
-                        m_db.newTask(title, billable_edit.isChecked(), wifi);
+                        m_db.newTask(title, billable_edit.isChecked(), wifi, bluetooth);
                     } else {
-                        m_db.updateTask(m_row_id, title, billable_edit.isChecked(), wifi);
+                        m_db.updateTask(m_row_id, title, billable_edit.isChecked(), wifi, bluetooth);
                     }
                     setResult(RESULT_OK);
                 } else {
@@ -118,8 +129,24 @@ public class TaskEditActivity extends Activity {
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
-    private void populateWiFiList() {
+    private void populateBluetoothList() {
+        bluetoothArrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_single_choice, android.R.id.text1);
 
+        BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+
+        for (BluetoothDevice device : bluetoothManager.getAdapter().getBondedDevices()) {
+            bluetoothArrayAdapter.add(device.getName());
+        }
+        bluetooth_list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                view.setSelected(true);
+                selected_item = i;
+            }
+        });
+    }
+
+    private void populateWiFiList() {
         wifiNetworksArrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_single_choice, android.R.id.text1);
         wifi_list.setAdapter(wifiNetworksArrayAdapter);
 

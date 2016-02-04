@@ -18,6 +18,7 @@
 package com.tastycactus.timesheet;
 
 import android.app.ListActivity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -30,8 +31,10 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView.AdapterContextMenuInfo;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
+import android.widget.TextView;
 
 public class TimesheetActivity extends ListActivity {
     public static final int ADD_TASK_MENU_ITEM = Menu.FIRST;
@@ -44,6 +47,8 @@ public class TimesheetActivity extends ListActivity {
     TimesheetDatabase m_db;
     Cursor m_task_cursor;
     SimpleCursorAdapter m_ca;
+    private String[] mFrom;
+    private int[] mTo;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -55,11 +60,54 @@ public class TimesheetActivity extends ListActivity {
         startManagingCursor(m_task_cursor);
 
         setContentView(R.layout.main);
+        mFrom = new String[]{"title", "wifi", "bluetooth"};
+        mTo = new int[]{android.R.id.text1, android.R.id.text2};
         m_ca = new SimpleCursorAdapter(this,
                 R.layout.simple_list_item_2_single_choice,
                 m_task_cursor,
-                new String[]{"title", "wifi"},
-                new int[]{android.R.id.text1, android.R.id.text2});
+                mFrom,
+                mTo) {
+
+            @Override
+            public void bindView(View view, Context context, Cursor cursor) {
+                final ViewBinder binder = getViewBinder();
+                final int count = mTo.length;
+                final int[] from = new int[]{cursor.getColumnIndexOrThrow(mFrom[0]), cursor.getColumnIndexOrThrow(mFrom[1]), cursor.getColumnIndexOrThrow(mFrom[2])};
+                final int[] to = mTo;
+
+                for (int i = 0; i < count; i++) {
+                    final View v = view.findViewById(to[i]);
+                    if (v != null) {
+                        boolean bound = false;
+                        if (binder != null) {
+                            bound = binder.setViewValue(v, cursor, from[i]);
+                        }
+
+                        if (!bound) {
+                            String text = cursor.getString(from[i]);
+                            if (text == null) {
+                                text = "<Not Selected>";
+                            }
+                            if (i == 1) {
+                                String bluetoothName = cursor.getString(from[2]);
+                                if (bluetoothName == null)
+                                    bluetoothName = "<Not Selected>";
+                                text += " / " + bluetoothName;
+                            }
+
+                            if (v instanceof TextView) {
+                                setViewText((TextView) v, text);
+                            } else if (v instanceof ImageView) {
+                                setViewImage((ImageView) v, text);
+                            } else {
+                                throw new IllegalStateException(v.getClass().getName() + " is not a " +
+                                        " view that can be bounds by this SimpleCursorAdapter");
+                            }
+                        }
+                    }
+                }
+            }
+        };
 
         m_ca.registerDataSetObserver(new DataSetObserver() {
             public void onChanged() {
@@ -116,12 +164,9 @@ public class TimesheetActivity extends ListActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         boolean result = super.onCreateOptionsMenu(menu);
-        menu.add(Menu.NONE, ADD_TASK_MENU_ITEM, Menu.NONE, "Add Task")
-                .setIcon(android.R.drawable.ic_menu_add);
-        menu.add(Menu.NONE, LIST_ENTRIES_MENU_ITEM, Menu.NONE, "List Entries")
-                .setIcon(android.R.drawable.ic_menu_info_details);
-        menu.add(Menu.NONE, PREFERENCES_MENU_ITEM, Menu.NONE, "Preferences")
-                .setIcon(android.R.drawable.ic_menu_preferences);
+        menu.add(Menu.NONE, ADD_TASK_MENU_ITEM, Menu.NONE, "Add Task").setIcon(android.R.drawable.ic_menu_add);
+        menu.add(Menu.NONE, LIST_ENTRIES_MENU_ITEM, Menu.NONE, "List Entries").setIcon(android.R.drawable.ic_menu_info_details);
+        menu.add(Menu.NONE, PREFERENCES_MENU_ITEM, Menu.NONE, "Preferences").setIcon(android.R.drawable.ic_menu_preferences);
         return result;
     }
 
