@@ -22,7 +22,6 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.database.Cursor;
-import android.net.Uri;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -36,17 +35,17 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TabHost;
 
-import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.api.GoogleApiClient;
 
 import java.util.List;
+import java.util.Set;
 
 public class TaskEditActivity extends Activity {
     TimesheetDatabase m_db;
     long m_row_id;
+    int selectedWifi, selectedBluetooth = -1;
     ListView wifi_list;
-    int selected_item;
     private ListView bluetooth_list;
     private ArrayAdapter<String> wifiNetworksArrayAdapter;
     private ArrayAdapter<String> bluetoothArrayAdapter;
@@ -56,6 +55,14 @@ public class TaskEditActivity extends Activity {
      */
     private GoogleApiClient client;
     private TabHost tabHost;
+
+    private static int setItemChecked(String name, ArrayAdapter<String> stringArrayAdapter, ListView listView) {
+        int selected_item = stringArrayAdapter.getPosition(name);
+        Log.e("NETWORK_List", "Item " + name + " at pos " + selected_item);
+        listView.smoothScrollToPosition(selected_item);
+        listView.setItemChecked(selected_item, true);
+        return selected_item;
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -67,6 +74,7 @@ public class TaskEditActivity extends Activity {
         String title;
         boolean billable;
         String wifi;
+        String bluetoothName;
 
         if (b != null) {
             m_row_id = b.getLong("_id");
@@ -75,12 +83,14 @@ public class TaskEditActivity extends Activity {
             billable = (billable_int != 0);
             title = entry.getString(entry.getColumnIndex("title"));
             wifi = entry.getString(entry.getColumnIndex("wifi"));
+            bluetoothName = entry.getString(entry.getColumnIndex("bluetooth"));
             entry.close();
         } else {
             m_row_id = -1;
             billable = false;
             title = "";
             wifi = "";
+            bluetoothName = "";
         }
 
         setContentView(R.layout.task_edit);
@@ -90,6 +100,9 @@ public class TaskEditActivity extends Activity {
         wifi_list = (ListView) findViewById(R.id.wifiList);
         bluetooth_list = (ListView) findViewById(R.id.bluetoothList);
         tabHost = (TabHost) findViewById(R.id.tabHost);
+        tabHost.setup();
+        addTab("Wifi", R.id.tab1);
+        addTab("Bluetooth", R.id.tab2);
 
         populateWiFiList();
         populateBluetoothList();
@@ -97,10 +110,9 @@ public class TaskEditActivity extends Activity {
 
         title_edit.setText(title);
         billable_edit.setChecked(billable);
-        selected_item = wifiNetworksArrayAdapter.getPosition(wifi);
-        Log.e("WIFI List", "Item " + wifi + " at pos " + selected_item);
-        wifi_list.smoothScrollToPosition(selected_item);
-        wifi_list.setItemChecked(selected_item, true);
+
+        selectedWifi = setItemChecked(wifi, wifiNetworksArrayAdapter, wifi_list);
+        selectedBluetooth = setItemChecked(bluetoothName, bluetoothArrayAdapter, bluetooth_list);
 
         Button addButton = (Button) findViewById(R.id.add_button);
         if (m_row_id != -1)
@@ -108,8 +120,12 @@ public class TaskEditActivity extends Activity {
         addButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
                 String title = title_edit.getText().toString();
-                String wifi = wifiNetworksArrayAdapter.getItem(selected_item);
-                String bluetooth = bluetoothArrayAdapter.getItem(selected_item);
+                String wifi = null, bluetooth = null;
+                if (selectedWifi > 0)
+                    wifi = wifiNetworksArrayAdapter.getItem(selectedWifi);
+                if (selectedBluetooth > 0)
+                    bluetooth = bluetoothArrayAdapter.getItem(selectedBluetooth);
+                Log.d("TaskEdit", String.format("Wifi selected(%d) = %s\tBluetooth selected(%d) = %s", selectedWifi, wifi, selectedBluetooth, bluetooth));
 
                 if (title.length() > 0) {
                     if (m_row_id == -1) {
@@ -129,19 +145,33 @@ public class TaskEditActivity extends Activity {
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
+    private void addTab(String indicator, int resourceId) {
+        TabHost.TabSpec spec = tabHost.newTabSpec(indicator);
+        spec.setContent(resourceId);
+        spec.setIndicator(indicator);
+        tabHost.addTab(spec);
+    }
+
     private void populateBluetoothList() {
         bluetoothArrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_single_choice, android.R.id.text1);
+        bluetooth_list.setAdapter(bluetoothArrayAdapter);
 
         BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        Set<BluetoothDevice> list = bluetoothManager.getAdapter().getBondedDevices();
 
-        for (BluetoothDevice device : bluetoothManager.getAdapter().getBondedDevices()) {
+        if (list.isEmpty())
+            bluetoothArrayAdapter.add("Enable Bluetooth to see devices!");
+        else
+            bluetoothArrayAdapter.add("<Not Selected>");
+
+        for (BluetoothDevice device : list) {
             bluetoothArrayAdapter.add(device.getName());
         }
         bluetooth_list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 view.setSelected(true);
-                selected_item = i;
+                selectedBluetooth = i;
             }
         });
     }
@@ -156,6 +186,7 @@ public class TaskEditActivity extends Activity {
         if (list == null || list.isEmpty()) {
             wifiNetworksArrayAdapter.add("No Network Found");
         } else
+            wifiNetworksArrayAdapter.add("<Not Selected>");
             for (WifiConfiguration config : list) {
                 wifiNetworksArrayAdapter.add(config.SSID.replace("\"", ""));
             }
@@ -164,7 +195,7 @@ public class TaskEditActivity extends Activity {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 view.setSelected(true);
-                selected_item = i;
+                selectedWifi = i;
             }
         });
     }
@@ -173,45 +204,5 @@ public class TaskEditActivity extends Activity {
     protected void onDestroy() {
         m_db.close();
         super.onDestroy();
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-
-        // ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
-        client.connect();
-        Action viewAction = Action.newAction(
-                Action.TYPE_VIEW, // TODO: choose an action type.
-                "TaskEdit Page", // TODO: Define a title for the content shown.
-                // TODO: If you have web page content that matches this app activity's content,
-                // make sure this auto-generated web page URL is correct.
-                // Otherwise, set the URL to null.
-                Uri.parse("http://host/path"),
-                // TODO: Make sure this auto-generated app deep link URI is correct.
-                Uri.parse("android-app://com.tastycactus.timesheet/http/host/path")
-        );
-        AppIndex.AppIndexApi.start(client, viewAction);
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-
-        // ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
-        Action viewAction = Action.newAction(
-                Action.TYPE_VIEW, // TODO: choose an action type.
-                "TaskEdit Page", // TODO: Define a title for the content shown.
-                // TODO: If you have web page content that matches this app activity's content,
-                // make sure this auto-generated web page URL is correct.
-                // Otherwise, set the URL to null.
-                Uri.parse("http://host/path"),
-                // TODO: Make sure this auto-generated app deep link URI is correct.
-                Uri.parse("android-app://com.tastycactus.timesheet/http/host/path")
-        );
-        AppIndex.AppIndexApi.end(client, viewAction);
-        client.disconnect();
     }
 }

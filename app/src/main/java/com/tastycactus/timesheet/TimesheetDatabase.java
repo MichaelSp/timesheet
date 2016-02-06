@@ -360,7 +360,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         SQLiteDatabase db = getReadableDatabase();
         Cursor c = db.query(true, "time_entries", new String[]{"task_id"}, "end_time IS NULL", null, null, null, null, null);
         if (c.getCount() == 0) {
-            return -1;
+            return 0;
         }
         c.moveToFirst();
         return c.getLong(0);
@@ -402,7 +402,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         SQLiteDatabase db = getReadableDatabase();
         Cursor c = db.query("tasks", new String[]{"_id"}, "wifi = ?", new String[]{wifiName}, null, null, null);
         if (c.getCount() == 0) {
-            return -1;
+            return 0;
         }
         c.moveToFirst();
         long id = c.getLong(0);
@@ -414,7 +414,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         SQLiteDatabase db = getReadableDatabase();
         Cursor c = db.query("tasks", new String[]{"_id"}, "bletooth = ?", new String[]{deviceName}, null, null, null);
         if (c.getCount() == 0) {
-            return -1;
+            return 0;
         }
         c.moveToFirst();
         long id = c.getLong(0);
