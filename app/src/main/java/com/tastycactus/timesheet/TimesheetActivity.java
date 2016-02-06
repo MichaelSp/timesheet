@@ -25,6 +25,7 @@ import android.database.Cursor;
 import android.database.DataSetObserver;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Menu;
@@ -33,6 +34,7 @@ import android.view.View;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.RadioButton;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 
@@ -62,52 +64,7 @@ public class TimesheetActivity extends ListActivity {
         setContentView(R.layout.main);
         mFrom = new String[]{"title", "wifi", "bluetooth"};
         mTo = new int[]{android.R.id.text1, android.R.id.text2};
-        m_ca = new SimpleCursorAdapter(this,
-                R.layout.simple_list_item_2_single_choice,
-                m_task_cursor,
-                mFrom,
-                mTo) {
-
-            @Override
-            public void bindView(View view, Context context, Cursor cursor) {
-                final ViewBinder binder = getViewBinder();
-                final int count = mTo.length;
-                final int[] from = new int[]{cursor.getColumnIndexOrThrow(mFrom[0]), cursor.getColumnIndexOrThrow(mFrom[1]), cursor.getColumnIndexOrThrow(mFrom[2])};
-                final int[] to = mTo;
-
-                for (int i = 0; i < count; i++) {
-                    final View v = view.findViewById(to[i]);
-                    if (v != null) {
-                        boolean bound = false;
-                        if (binder != null) {
-                            bound = binder.setViewValue(v, cursor, from[i]);
-                        }
-
-                        if (!bound) {
-                            String text = cursor.getString(from[i]);
-                            if (text == null) {
-                                text = "<Not Selected>";
-                            }
-                            if (i == 1) {
-                                String bluetoothName = cursor.getString(from[2]);
-                                if (bluetoothName == null)
-                                    bluetoothName = "<Not Selected>";
-                                text += " / " + bluetoothName;
-                            }
-
-                            if (v instanceof TextView) {
-                                setViewText((TextView) v, text);
-                            } else if (v instanceof ImageView) {
-                                setViewImage((ImageView) v, text);
-                            } else {
-                                throw new IllegalStateException(v.getClass().getName() + " is not a " +
-                                        " view that can be bounds by this SimpleCursorAdapter");
-                            }
-                        }
-                    }
-                }
-            }
-        };
+        m_ca = new MySimpleCursorAdapter();
 
         m_ca.registerDataSetObserver(new DataSetObserver() {
             public void onChanged() {
@@ -116,7 +73,6 @@ public class TimesheetActivity extends ListActivity {
         });
 
         setListAdapter(m_ca);
-        getListView().setChoiceMode(ListView.CHOICE_MODE_SINGLE);
 
         registerForContextMenu(getListView());
 
@@ -172,13 +128,19 @@ public class TimesheetActivity extends ListActivity {
 
     @Override
     public void onListItemClick(ListView lv, View v, int position, long id) {
+        RadioButton radio = (RadioButton) v.findViewById(R.id.radio);
         if (id == m_db.getCurrentTaskId()) {
             m_db.completeCurrentTask();
             getListView().clearChoices();
             getListView().requestLayout();
+            v.setSelected(false);
+            radio.setChecked(false);
         } else {
             m_db.changeTask(id, "");
+            v.setSelected(true);
+            radio.setChecked(true);
         }
+
         // Update the App Widget
         startService(new Intent(this, TimesheetAppWidgetProvider.UpdateService.class));
     }
@@ -226,18 +188,15 @@ public class TimesheetActivity extends ListActivity {
     }
 
     private void addTask() {
-        Intent i = new Intent(this, TaskEditActivity.class);
-        startActivityForResult(i, ACTIVITY_CREATE);
+        startActivityForResult(new Intent(this, TaskEditActivity.class), ACTIVITY_CREATE);
     }
 
     private void listEntries() {
-        Intent i = new Intent(this, TimeEntriesActivity.class);
-        startActivity(i);
+        startActivity(new Intent(this, TimeEntriesActivity.class));
     }
 
     private void preferences() {
-        Intent i = new Intent(this, TimesheetPreferences.class);
-        startActivity(i);
+        startActivity(new Intent(this, TimesheetPreferences.class));
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -252,13 +211,67 @@ public class TimesheetActivity extends ListActivity {
 
     private void updateCheckedItem() {
         long current_id = m_db.getCurrentTaskId();
+        Log.d("MAIN", String.format("UpdateCheckedItem: currentTaskId=%d", m_db.getCurrentTaskId()));
         if (current_id == 0) {
             getListView().clearChoices();
         } else {
             int count = getListView().getCount();
             for (int i = 0; i < count; ++i) {
                 if (m_ca.getItemId(i) == current_id) {
-                    getListView().setItemChecked(i, true);
+                    Log.d("MAIN", String.format("UpdateCheckedItem: setItemChecked(%d)", i));
+                }
+            }
+        }
+    }
+
+    class MySimpleCursorAdapter extends SimpleCursorAdapter {
+
+        public MySimpleCursorAdapter() {
+            super(TimesheetActivity.this, R.layout.simple_list_item_2_single_choice,
+                    TimesheetActivity.this.m_task_cursor,
+                    TimesheetActivity.this.mFrom,
+                    TimesheetActivity.this.mTo, FLAG_REGISTER_CONTENT_OBSERVER);
+        }
+
+        @Override
+        public void bindView(View view, Context context, Cursor cursor) {
+            final ViewBinder binder = getViewBinder();
+            final int count = mTo.length;
+            final int[] from = new int[]{cursor.getColumnIndexOrThrow(mFrom[0]), cursor.getColumnIndexOrThrow(mFrom[1]), cursor.getColumnIndexOrThrow(mFrom[2])};
+            final int[] to = mTo;
+
+            RadioButton radio = (RadioButton) view.findViewById(R.id.radio);
+            radio.setChecked(view.isSelected());
+
+            for (int i = 0; i < count; i++) {
+                final View v = view.findViewById(to[i]);
+                if (v != null) {
+                    boolean bound = false;
+                    if (binder != null) {
+                        bound = binder.setViewValue(v, cursor, from[i]);
+                    }
+
+                    if (!bound) {
+                        String text = cursor.getString(from[i]);
+                        if (text == null) {
+                            text = "<Not Selected>";
+                        }
+                        if (i == 1) {
+                            String bluetoothName = cursor.getString(from[2]);
+                            if (bluetoothName == null)
+                                bluetoothName = "<Not Selected>";
+                            text += " / " + bluetoothName;
+                        }
+
+                        if (v instanceof TextView) {
+                            setViewText((TextView) v, text);
+                        } else if (v instanceof ImageView) {
+                            setViewImage((ImageView) v, text);
+                        } else {
+                            throw new IllegalStateException(v.getClass().getName() + " is not a " +
+                                    " view that can be bounds by this SimpleCursorAdapter");
+                        }
+                    }
                 }
             }
         }

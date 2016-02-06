@@ -35,9 +35,6 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TabHost;
 
-import com.google.android.gms.appindexing.AppIndex;
-import com.google.android.gms.common.api.GoogleApiClient;
-
 import java.util.List;
 import java.util.Set;
 
@@ -53,7 +50,6 @@ public class TaskEditActivity extends Activity {
      * ATTENTION: This was auto-generated to implement the App Indexing API.
      * See https://g.co/AppIndexing/AndroidStudio for more information.
      */
-    private GoogleApiClient client;
     private TabHost tabHost;
 
     private static int setItemChecked(String name, ArrayAdapter<String> stringArrayAdapter, ListView listView) {
@@ -140,9 +136,6 @@ public class TaskEditActivity extends Activity {
                 finish();
             }
         });
-        // ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
-        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
     private void addTab(String indicator, int resourceId) {
@@ -159,13 +152,13 @@ public class TaskEditActivity extends Activity {
         BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         Set<BluetoothDevice> list = bluetoothManager.getAdapter().getBondedDevices();
 
-        if (list.isEmpty())
+        if (list == null || list.isEmpty())
             bluetoothArrayAdapter.add("Enable Bluetooth to see devices!");
-        else
+        else {
             bluetoothArrayAdapter.add("<Not Selected>");
-
-        for (BluetoothDevice device : list) {
-            bluetoothArrayAdapter.add(device.getName());
+            for (BluetoothDevice device : list) {
+                bluetoothArrayAdapter.add(device.getName());
+            }
         }
         bluetooth_list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -185,11 +178,12 @@ public class TaskEditActivity extends Activity {
         List<WifiConfiguration> list = wifiManager.getConfiguredNetworks();
         if (list == null || list.isEmpty()) {
             wifiNetworksArrayAdapter.add("No Network Found");
-        } else
+        } else {
             wifiNetworksArrayAdapter.add("<Not Selected>");
             for (WifiConfiguration config : list) {
                 wifiNetworksArrayAdapter.add(config.SSID.replace("\"", ""));
             }
+        }
 
         wifi_list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override

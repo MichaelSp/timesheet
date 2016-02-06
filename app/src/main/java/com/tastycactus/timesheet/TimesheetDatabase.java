@@ -260,6 +260,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         cv.put("start_time", start_time);
         cv.put("end_time", end_time);
         try {
+            Log.d("DB", "New TaskTimeEntry " + cv);
             getWritableDatabase().insert("time_entries", null, cv);
         } catch (SQLException e) {
             Log.e("DB", "Error adding new time entry" + e.toString());
@@ -333,6 +334,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
 
     public void completeCurrentTask() {
         long current_id = getCurrentId();
+        Log.d("DB", "Complete current task with entry id " + current_id);
         if (current_id == -1) {
             return;
         }
