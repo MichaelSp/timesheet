@@ -231,18 +231,28 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         return c;
     }
 
-    private Cursor doTimeEntriesSql(String start_date) {
+    private Cursor doTimeEntriesSql(String start_date, long task_id) {
         SQLiteDatabase db = getReadableDatabase();
+        String query = "";
+        String[] selectionArgs = new String[]{start_date};
+        if (task_id >= 0) {
+            query = " AND tasks._id = ?";
+            selectionArgs = new String[]{start_date, Long.toString(task_id)};
+        }
         Cursor c = db.rawQuery(
                 "SELECT time_entries._id, title, comment, strftime('%H:%M', start_time) AS start_time,"
-                + " strftime('%H:%M', ifnull(end_time, datetime('now', 'localtime'))) AS end_time,"
-                + " round((strftime('%s', ifnull(end_time, datetime('now', 'localtime'))) - strftime('%s', start_time)) / 3600.0, 2) AS duration"
-                + " FROM time_entries, tasks"
-                        + " WHERE tasks._id = time_entries.task_id AND date(start_time) = ? ORDER BY start_time ASC",
-                new String[] {start_date}
+                        + " strftime('%H:%M', ifnull(end_time, datetime('now', 'localtime'))) AS end_time,"
+                        + " round((strftime('%s', ifnull(end_time, datetime('now', 'localtime'))) - strftime('%s', start_time)) / 3600.0, 2) AS duration"
+                        + " FROM time_entries, tasks"
+                        + " WHERE tasks._id = time_entries.task_id AND date(start_time) = ? " + query + "ORDER BY start_time ASC",
+                selectionArgs
         );
         c.moveToFirst();
         return c;
+    }
+
+    private Cursor doTimeEntriesSql(String start_date) {
+        return doTimeEntriesSql(start_date, -1);
     }
 
     public Cursor getTimeEntries() {
@@ -254,6 +264,11 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
     }
 
     public void newTimeEntry(long task_id, String comment, String start_time, String end_time) {
+        String[] overlappingTimeEntry = findOverlappingTimeEntry(task_id, start_time);
+        if (overlappingTimeEntry.length > 0) {
+            updateTimeEntry(Long.parseLong(overlappingTimeEntry[0]), task_id, comment, overlappingTimeEntry[1], end_time);
+            return;
+        }
         ContentValues cv = new ContentValues();
         cv.put("task_id", task_id);
         cv.put("comment", comment);
@@ -267,6 +282,22 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         }
     }
 
+    private String[] findOverlappingTimeEntry(long newTaskId, String newStartTime) {
+        String newTaskName = getTaskName(newTaskId);
+        Cursor entries = doTimeEntriesSql(getSqlDate(), newTaskId);
+        entries.moveToLast();
+        String startTime = entries.getString(3);
+        String endTime = entries.getString(4);
+        String taskName = entries.getString(1);
+        newStartTime = newStartTime.split(" ")[1];
+
+        Log.d("DB", "find overlapping time entry: " + newTaskId + " @ " + newStartTime + " (" + newTaskName.equals(taskName) + ", " + newStartTime.equals(endTime) + ") ENDTIME: " + endTime);
+        if (newTaskName.equals(taskName) && newStartTime.equals(endTime)) {
+            return new String[]{entries.getString(0), startTime};
+        }
+        return new String[]{};
+    }
+
     public void updateTimeEntry(long id, long task_id, String comment, String start_time, String end_time) {
         ContentValues cv = new ContentValues();
         cv.put("task_id", task_id);
@@ -274,6 +305,7 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
         cv.put("start_time", start_time);
         cv.put("end_time", end_time);
         try {
+            Log.d("DB", "Update TaskTimeEntry " + cv);
             getWritableDatabase().update("time_entries", cv, "_id = ?", new String[]{Long.toString(id)});
         } catch (SQLException e) {
             Log.e("DB", "Error updating time entry" + e.toString());

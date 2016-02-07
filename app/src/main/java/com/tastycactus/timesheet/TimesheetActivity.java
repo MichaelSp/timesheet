@@ -134,10 +134,12 @@ public class TimesheetActivity extends ListActivity {
             getListView().clearChoices();
             getListView().requestLayout();
             v.setSelected(false);
+            getListView().setItemChecked(position, false);
             radio.setChecked(false);
         } else {
             m_db.changeTask(id, "");
             v.setSelected(true);
+            getListView().setItemChecked(position, true);
             radio.setChecked(true);
         }
 
