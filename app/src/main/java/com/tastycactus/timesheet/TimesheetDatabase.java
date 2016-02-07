@@ -285,15 +285,16 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
     private String[] findOverlappingTimeEntry(long newTaskId, String newStartTime) {
         String newTaskName = getTaskName(newTaskId);
         Cursor entries = doTimeEntriesSql(getSqlDate(), newTaskId);
-        entries.moveToLast();
-        String startTime = entries.getString(3);
-        String endTime = entries.getString(4);
-        String taskName = entries.getString(1);
-        newStartTime = newStartTime.split(" ")[1];
+        if (entries.moveToLast()) {
+            String startTime = entries.getString(3);
+            String endTime = entries.getString(4);
+            String taskName = entries.getString(1);
+            newStartTime = newStartTime.split(" ")[1];
 
-        Log.d("DB", "find overlapping time entry: " + newTaskId + " @ " + newStartTime + " (" + newTaskName.equals(taskName) + ", " + newStartTime.equals(endTime) + ") ENDTIME: " + endTime);
-        if (newTaskName.equals(taskName) && newStartTime.equals(endTime)) {
-            return new String[]{entries.getString(0), startTime};
+            Log.d("DB", "find overlapping time entry: " + newTaskId + " @ " + newStartTime + " (" + newTaskName.equals(taskName) + ", " + newStartTime.equals(endTime) + ") ENDTIME: " + endTime);
+            if (newTaskName.equals(taskName) && newStartTime.equals(endTime)) {
+                return new String[]{entries.getString(0), startTime};
+            }
         }
         return new String[]{};
     }
