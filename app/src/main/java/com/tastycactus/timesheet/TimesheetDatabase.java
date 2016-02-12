@@ -26,6 +26,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import java.util.Calendar;
+import java.util.Locale;
 
 public class TimesheetDatabase extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "Timesheet";
@@ -344,6 +345,25 @@ public class TimesheetDatabase extends SQLiteOpenHelper {
 
     public Cursor getWeekEntries(int year, int month, int day) {
         return doWeekSql(String.format("%04d-%02d-%02d", year, month, day));
+    }
+
+
+    public Cursor getYearEntries(int year) {
+        String start_date = String.format(Locale.getDefault(), "%04d-%02d-%02d", year, 1, 1);
+        String end_date = String.format(Locale.getDefault(), "%04d-%02d-%02d", year, 12, 31);
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor c = db.rawQuery(
+                "SELECT time_entries._id AS _id, strftime('%W', start_time) AS week,"
+                        + " sum((strftime('%s', ifnull(end_time, datetime('now', 'localtime'))) - strftime('%s', start_time)) / 3600.0) AS total"
+                        + " FROM time_entries, tasks"
+                        + " WHERE tasks._id = time_entries.task_id"
+                        + " AND date(start_time) >= ?"
+                        + " AND date(start_time) < ?"
+                        + " GROUP BY week ORDER BY week ASC",
+                new String[]{start_date, end_date}
+        );
+        c.moveToFirst();
+        return c;
     }
 
     public void deleteTimeEntry(long time_entry_id) {

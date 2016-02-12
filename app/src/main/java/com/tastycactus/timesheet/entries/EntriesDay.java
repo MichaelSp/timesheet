@@ -1,4 +1,4 @@
-package com.tastycactus.timesheet.layout;
+package com.tastycactus.timesheet.entries;
 
 import android.content.Intent;
 import android.database.Cursor;

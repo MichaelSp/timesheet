@@ -18,7 +18,6 @@
 package com.tastycactus.timesheet;
 
 import android.content.Intent;
-import android.database.Cursor;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
@@ -29,11 +28,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.SimpleAdapter;
 
-import com.tastycactus.timesheet.layout.EntriesBase;
-import com.tastycactus.timesheet.layout.EntriesDay;
-import com.tastycactus.timesheet.layout.EntriesWeek;
+import com.tastycactus.timesheet.entries.EntriesBase;
+import com.tastycactus.timesheet.entries.EntriesDay;
+import com.tastycactus.timesheet.entries.EntriesWeek;
+import com.tastycactus.timesheet.entries.EntriesYear;
 
 public class TimeEntriesActivity extends FragmentActivity
 {
@@ -44,11 +43,6 @@ public class TimeEntriesActivity extends FragmentActivity
     public static final int EXPORT_MENU_ITEM            = Menu.FIRST + 3;
     public static final int EMAIL_MENU_ITEM             = Menu.FIRST + 4;
     protected static final int ACTIVITY_CREATE = 0;
-    TimeEntriesWeeklyData m_week_data;
-    TimesheetDatabase m_db;
-    Cursor m_day_cursor;
-    MergeAdapter m_merge_adapter;
-    SimpleAdapter m_totals_adapter;
     private MyPagerAdapter fragmentAdapter = new MyPagerAdapter();
 
     @Override
@@ -145,7 +139,7 @@ public class TimeEntriesActivity extends FragmentActivity
     }
 
     private class MyPagerAdapter extends FragmentPagerAdapter {
-        EntriesBase[] fragments = new EntriesBase[2];
+        EntriesBase[] fragments = new EntriesBase[3];
 
         public MyPagerAdapter() {
             super(getSupportFragmentManager());
@@ -161,6 +155,9 @@ public class TimeEntriesActivity extends FragmentActivity
                 case 1:
                     fragment = new EntriesWeek();
                     break;
+                case 2:
+                    fragment = new EntriesYear();
+                    break;
                 default:
                     return null;
             }
@@ -174,7 +171,7 @@ public class TimeEntriesActivity extends FragmentActivity
 
         @Override
         public int getCount() {
-            return 2;
+            return fragments.length;
         }
 
         @Override
@@ -184,6 +181,8 @@ public class TimeEntriesActivity extends FragmentActivity
                     return "Day";
                 case 1:
                     return "Week";
+                case 2:
+                    return "Year";
                 default:
                     return null;
             }

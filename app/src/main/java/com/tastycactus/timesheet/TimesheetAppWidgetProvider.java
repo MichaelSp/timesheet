@@ -140,13 +140,15 @@ public class TimesheetAppWidgetProvider extends AppWidgetProvider
         public void onHandleIntent(Intent intent) {
             // If the currently selected task is the active task, clear the 
             // current task.  Otherwise, set this to the current task
-            long task_id = m_prefs.getLong("app_task", intent.getLongExtra("TASK_ID", -1));
-            long current_id = m_db.getCurrentTaskId();
+            long new_task_id = m_prefs.getLong("app_task", intent.getLongExtra("TASK_ID", -1));
+            long current_task_id = m_db.getCurrentTaskId();
             boolean toggle = intent.getBooleanExtra("TOGGLE", true);
-            if (task_id == current_id && task_id >= 0 || current_id >= 0 && task_id == -1 && toggle) {
+            boolean disable_current_task = current_task_id >= 0 && new_task_id == -1;
+
+            if (new_task_id == current_task_id && toggle || disable_current_task) {
                 m_db.completeCurrentTask();
-            } else if (task_id >= 0) {
-                m_db.changeTask(task_id, intent.getStringExtra("COMMENT"));
+            } else if (new_task_id >= 0) {
+                m_db.changeTask(new_task_id, intent.getStringExtra("COMMENT"));
             }
 
             // Update the GUI

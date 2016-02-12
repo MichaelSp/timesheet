@@ -10,29 +10,21 @@
         android:layout_height="fill_parent">
 
         <Button
-            android:id="@+id/week_selection_button"
+            android:id="@+id/year_selection_button"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
             android:layout_alignParentTop="true"
-            android:layout_marginTop="7dip"
             android:gravity="center"
             android:textAppearance="?android:attr/textAppearanceLarge" />
 
-        <ListView
-            android:id="@+id/entries_week_totals"
+        <GridView
+            android:id="@+id/gridView"
             android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:divider="@null"
-            android:dividerHeight="0px" />
-
-        <TextView
-            android:id="@+id/totals_label"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:layout_above="@id/entries_week_totals"
-            android:text="Totals:"
-            android:textAppearance="?android:attr/textAppearanceMedium" />
+            android:layout_height="fill_parent"
+            android:layout_above="@+id/totals_label"
+            android:layout_alignParentStart="true"
+            android:layout_below="@+id/week_selection_button" />
 
         <View
             android:id="@+id/separator"
@@ -43,14 +35,15 @@
             android:layout_marginTop="6dip"
             android:background="#FF909090" />
 
-        <ListView
-            android:id="@+id/entries_byweek"
+        <TextView
+            android:id="@+id/totals_label"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:layout_above="@id/separator"
-            android:layout_below="@id/week_selection_button"
-            android:divider="@null"
-            android:dividerHeight="0px" />
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentStart="true"
+            android:text="Totals:"
+            android:textAppearance="?android:attr/textAppearanceMedium" />
+
     </RelativeLayout>
 
 </FrameLayout>
