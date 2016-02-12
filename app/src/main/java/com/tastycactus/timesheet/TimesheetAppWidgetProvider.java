@@ -142,7 +142,8 @@ public class TimesheetAppWidgetProvider extends AppWidgetProvider
             // current task.  Otherwise, set this to the current task
             long task_id = m_prefs.getLong("app_task", intent.getLongExtra("TASK_ID", -1));
             long current_id = m_db.getCurrentTaskId();
-            if (task_id == current_id && task_id >= 0 || current_id >= 0 && task_id == -1) {
+            boolean toggle = intent.getBooleanExtra("TOGGLE", true);
+            if (task_id == current_id && task_id >= 0 || current_id >= 0 && task_id == -1 && toggle) {
                 m_db.completeCurrentTask();
             } else if (task_id >= 0) {
                 m_db.changeTask(task_id, intent.getStringExtra("COMMENT"));

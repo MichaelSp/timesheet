@@ -42,7 +42,6 @@ public class NetworkListener extends BroadcastReceiver {
         Log.d(LOG, "Connected to " + wifiName + ", TaskID " + taskId + " current task id=" + db.getCurrentTaskId());
         if (taskId >= 0) {
             setCurrentTask(context, taskId, wifiName);
-
         }
     }
 
@@ -55,6 +54,7 @@ public class NetworkListener extends BroadcastReceiver {
 
         Intent intent = new Intent(context, TimesheetAppWidgetProvider.ToggleActiveService.class);
         intent.putExtra("TASK_ID", taskId);
+        intent.putExtra("TOGGLE", false);
         if (taskId >= 0) {
             intent.putExtra("NETWORK_NAME", wifiName);
             intent.putExtra("COMMENT", "Logged into Wifi " + wifiName);
